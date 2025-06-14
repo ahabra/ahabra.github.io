@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title>Neural Networks - An Introduction</title>
+  <meta name="keywords"
+        content="neurons, neural networks, back propagation, Supervised Training, Output Layer, Hidden Layer, Perceptron, AI, Artificial intelligence, sigmoid,">
+  <meta name="description" content="To quickly define neurons, neural networks, and the back propagation algorithm">
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.jade.min.css">
+<link rel="stylesheet" href="/assets/css/tek271.css">
+</head>
+
+<body>
+<header class="container-fluid">
+  <nav>
+    <ul>
+      <li><h1><a class="title" href="/">Technology Exponent</a></h1></li>
+    </ul>
+    <ul>
+      <li><a href="/code/code.html">Code</a></li>
+      <li><a href="/writings/writings.html">Writings</a></li>
+      <li><a href="/resume/resume.html">Resume</a></li>
+    </ul>
+  </nav>
+  <hr/>
+</header>
+
+
+<main class="container-fluid">
+  <section>
+    <h2>Neural Networks - An Introduction</h2>
+    <ul>
+      <li>Author: Abdul Habra</li>
+      <li>Version: 0.13.1</li>
+      <li>2005.10.05</li>
+    </ul>
+  </section>
+  <hr>
+
+  <section>
+    <h3>Contents</h3>
+    <ol>
+      <li><a href="#Introduction">Introduction</a></li>
+      <li><a href="#History">History</a></li>
+      <li><a href="#SigmoidFunction">Sigmoid Function</a></li>
+      <li><a href="#Neuron">Neuron</a></li>
+      <li><a href="#NeuralNetworks">Neural Networks</a></li>
+      <li><a href="#BackPropagationNetworks">Back Propagation Networks</a></li>
+      <li><a href="#Conclusion">Conclusion</a></li>
+      <li><a href="#Resources">Resources</a></li>
+    </ol>
+  </section>
+
+  <section>
+    <h3 id="Introduction">1. Introduction</h3>
+    <p>A Neural Network (NN) is a computer software (and possibly hardware) that
+      simulates a simple model of neural cells in animals and humans. The purpose of
+      this simulation is to acquire the <i>intelligent</i> features of these cells. In this
+      document, when terms like <i>neuron, neural network, learning, or experience</i> are
+      mentioned, it should be understood that we are using them only in the context of
+      a NN as computer system.</p>
+
+    <p>NNs have the ability to learn by example, e.g. a NN can be trained to
+      recognize the image of car by showing it many examples of a car.</p>
+
+    <p>We will discuss neurons, NNs in general, and Back Propagation networks. Back
+      Propagation networks are a popular type of network that can be trained to
+      recognize different patterns including images, signals, and text.</p>
+
+    <p>This article does not try to prove the usefulness of NNs, when they should be
+      used, or why do they work. It is a high level summary with emphasize on how Back
+      Propagation networks work.</p>
+  </section>
+
+  <section>
+    <h3 id="History">2. History</h3>
+    <ul>
+      <li>Serious research started in the 1950s and 1960s by researchers like
+        Rosenblatt (Perceptron), Widrow and Hoff (ADALINE).
+      </li>
+      <li>In 1969 Minsky and Papert wrote a book exposing Perceptron limitations.
+        This effectively ended the interest in neural network research.
+      </li>
+      <li>In the late 1980s interest in NN increased with algorithms like Back
+        Propagation, Cognitrons and Kohonen. (Many of them where developed quietly
+        during the 1970s)
+      </li>
+      <li>Progress continued during the 1990ís.</li>
+      <li>Currently NNs are used in many commercial applications like character
+        recognition, image recognition, credit evaluation, fraud detection,
+        insurance, and stock forecasting.
+      </li>
+    </ul>
+  </section>
+
+  <section>
+    <h3 id="SigmoidFunction">3. Sigmoid Function</h3>
+    The function:
+    <pre class="code formula">s(x) = 1 / (1 + e <sup>-a * x</sup>)</pre>
+
+    <p>is called a Sigmoid function. The coefficient <code>a</code> is a real number constant.
+      Usually in NN applications <code>a</code> is chosen between 0.5 and 2. As a starting
+      point, you could use <code>a = 1</code> and modify it later when you are fine-tuning the
+      network. Note that <code>s(0)= 0.5</code>,
+      <code>s(&#8734;)= 1</code>, <code>s(-&#8734;)=0</code>.
+      (The symbol <code>&#8734;</code> means <i>infinity</i>).</p>
+    <p>Think of the sigmoid function, in layman terms, as a function that will
+      convert values less than 0.5 to 0, and values greater than 0.5 to 1. The Sigmoid
+      function is used on the output of neurons as will be explained next.</p>
+  </section>
+
+  <section>
+    <h3 id="Neuron">4. Neuron</h3>
+    <p>In a NN context, a neuron is a model of a neural cell in animals and humans.
+      This model is simplistic, but as it turned out, is very practical. Think of the
+      neuron as a program (<i>or a class if you like</i>) that has one
+      or more inputs and produces one output. The inputs simulate the stimuli/signals
+      that a neuron gets, while the output simulates the response/signal which the
+      neuron generates. The output is calculated by multiplying each input by a
+      different number (called weight), adding them all together, then scaling the
+      total to a number between 0 and 1.</p>
+    <p>The following diagram shows a simple neuron with:</p>
+    <ol>
+      <li>Three inputs [x1, x2, x3]. The input values are usually scaled to values
+        between 0 and 1.
+      </li>
+      <li>Three input weights [w1, w2, w3]. The weights are real numbers that
+        usually are initialized to some random numbers. Do not let the term <i>
+          weight</i> mislead you, it has nothing to do with the physical sense of
+        weight, in a programmer context, think of the weight as a variable of type
+        float/real that you can initialize to a random number between 0 and 1.
+      </li>
+      <li>One output z. A neuron has one (and only one) output. Its value is
+        between 0 and 1, it can be scaled to the full range of actual values.
+      </li>
+    </ol>
+
+    <figure>
+      <img src="neuron.gif" alt="Neuron with three inputs">
+      <figcaption>Neuron with three inputs</figcaption>
+    </figure>
+
+    Let
+    <pre class="code formula"> d= (x1 * w1) + (x2 * w2) + (x3 * w3)</pre>
+
+    In a more general fashion, for n number of inputs:
+    <pre class="code formula">d= Sum(x<sub>i</sub> * w<sub>i</sub>)            <i>... for i=1 to n</i></pre>
+    or more formally:
+    <pre class="code formula">d= &Sigma; x<sub>i</sub> w<sub>i</sub>           <i>... for i=1 to n</i></pre>
+
+    Let <code class="code formula">q</code> be a real number which we will call <i>Threshold</i>.
+    Experiments have shown that best values for q are between 0.25 and 1.
+    Again, in a programmer context, q is just a variable of type float/real that is
+    initialized to any number between 0.25 and 1.
+
+    <pre class="code formula">z= s(d + q)      <i>... Apply the sigmoid to get a number between 0 and 1</i></pre>
+
+    This says that the output <code class="code formula">z</code> is the result of applying the sigmoid
+    function on <code class="code formula">(d + q)</code>.
+    In NN applications, the challenge is to find the right values for the weights and the threshold.
+  </section>
+
+  <section>
+    <h3 id="NeuralNetworks">5. Neural Networks</h3>
+    <p>
+      A neural network is a group of neurons connected together. Connecting neurons to form
+      a NN can be done in various ways, next are some examples:
+    </p>
+
+    <figure>
+      <img src="networks.gif" alt="Neural Networks examples">
+      <figcaption>Neural Networks examples</figcaption>
+    </figure>
+
+
+    <p>
+      One of the popular NN is called the <i>Back Propagation</i> network which will be discussed next.
+    </p>
+  </section>
+
+
+  <section>
+    <h3 id="BackPropagationNetworks">6. Back Propagation Networks</h3>
+    <p>
+      The following diagram shows a Back Propagation NN:
+    </p>
+
+    <figure>
+      <img src="backProp.gif" alt="Back Propagation Network">
+      <figcaption>Back Propagation Network</figcaption>
+    </figure>
+
+    <br>
+    <p>This NN consists of three layers:</p>
+    <ol>
+      <li>Input layer with three neurons.</li>
+      <li>Hidden layer with two neurons.</li>
+      <li>Output layer with two neurons.</li>
+    </ol>
+
+    Note that:
+    <ol>
+      <li>The output of a neuron in a layer goes to all neurons in the following layer.</li>
+      <li>Each neuron has its own input weights.</li>
+      <li>The weights for the input layer are assumed to be 1 for each input. In
+        other words, input values are not changed.
+      </li>
+      <li>The output of the NN is reached by applying input values to the input
+        layer, passing the output of each neuron to the following layer as input.
+      </li>
+      <li>The Back Propagation NN must have at least an input layer and an output
+        layer. It could have zero or more hidden layers.
+      </li>
+    </ol>
+
+    <p>The number of neurons in the input layer depends on the number of possible
+      inputs we have, while the number of neurons in the output layer depends on the
+      number of desired outputs. The number of hidden layers and how many neurons in
+      each hidden layer cannot be well defined in advance, and could change per
+      network configuration and type of data. In general the addition of a hidden
+      layer could allow the network to learn more complex patterns, but at the same
+      time decreases its performance. You could start a network configuration using a
+      single hidden layer, and add more hidden layers if you notice that the network
+      is not learning as well as you like.</p>
+
+    <p>For example, suppose we have a bank credit application with ten questions,
+      which based on their answers, will determine the credit amount and the interest
+      rate. To use a Back Propagation NN, the network will have ten neurons in the
+      input layer and two neurons in the output layer.</p>
+
+    <section>
+      <h4>6.1 Supervised Training</h4>
+      <p>The Back Propagation NN works in two modes, a supervised training mode and a
+        production mode. The training can be summarized as follows:</p>
+      <p>
+        Start by initializing the input weights for all neurons to some random numbers between 0 and 1, then:
+      </p>
+      <ol>
+        <li>Apply input to the network.</li>
+        <li>Calculate the output.</li>
+        <li>Compare the resulting output with the desired output for the given
+          input. This is called the <i>error</i>.
+        </li>
+        <li>Modify the weights and threshold <code>q</code> for all neurons using the
+          <i>error</i>.
+        </li>
+        <li>Repeat the process until <i>error</i> reaches an acceptable value (e.g.
+          <i>error</i> &lt; 1%), which means that the NN was trained successfully, or if we reach a
+          maximum count of iterations, which means that the NN training was not
+          successful.
+        </li>
+      </ol>
+
+      <p>The challenge is to find a good algorithm for updating the weights and
+        thresholds in each iteration (step 4) to minimize the <i>error</i>.</p>
+
+      <p>Changing weights and threshold for neurons in the output layer is different
+        from hidden layers. Note that for the input layer, weights remain constant at 1
+        for each input neuron weight.</p>
+
+      <p>Before we explain the training, let's define the following:</p>
+      <ol>
+        <li><code>l</code> (<i>Lambda</i>) the Learning Rate: a real
+          number constant, usually 0.2 for output layer neurons and 0.15 for hidden
+          layer neurons.
+        </li>
+        <li><code>D</code> (<i>Delta</i>) the change: For example <code>Dx</code>
+          is the change in x. Note that <code>Dx</code> is a
+          single value and not <code>D</code> multiplied by <code>x</code>.
+        </li>
+      </ol>
+    </section>
+
+    <section>
+      <h4>6.2 Output Layer Training</h4>
+      <ol>
+        <li>Let z be the output of an output layer neuron as shown in section 4.</li>
+        <li>Let y be the desired output for the same neuron, it should be scaled to
+          a value between 0 and 1. This is the ideal output which we like to get when
+          applying a given set of input.
+        </li>
+        <li>Then e (the <i>error</i>) will be:</li>
+      </ol>
+      <pre class="code">
+e = z * (1 – z) * (y – z)
+Dq = l * e                 ... The change in q
+Dwi = Dq * xi              ... The change in weight at input i of the neuron</pre>
+
+      <p>In other words, for each output neuron, calculate its error e, and then
+        modify its threshold and weights using the formulas above.</p>
+    </section>
+
+    <section>
+      <h4>6.3 Hidden Layer Training</h4>
+      <p>Consider a hidden layer neuron as shown in the following figure:</p>
+      <figure>
+        <img src="hiddenLayer.gif"  alt="Hidden Layer neuron">
+        <figcaption>Hidden Layer neuron</figcaption>
+      </figure>
+
+      <br/>
+
+      <ul>
+        <li>Let <code>z</code> be the output of the hidden layer neuron as shown in section 4.</li>
+        <li>Let <code>m<sub>i</sub></code> be the weight at neuron
+          <code>N<sub>i</sub></code> in the layer following the current
+          layer. This is the weight for the input coming from the current hidden layer
+          neuron.</li>
+        <li>Let <code>e<sub>i</sub></code> be the error (e) at neuron
+          <code>N<sub>i</sub></code>.</li>
+        <li>Let <code>r</code> be the number of neurons in the layer following the current layer.
+          (In the above diagram r=3).</li>
+      </ul>
+
+      <pre class="code">
+g = S m<sub>i</sub> * e<sub>i</sub>                <i>... (for i=1 to r)</i>
+e = z * (1 – z) * g          <i>... Error at the hidden layer neuron</i>
+Dq = l * e                   <i>... The change in q</i>
+Dw<sub>i</sub> = Dq * x<sub>i</sub>                <i>... The change in weight i</i></pre>
+
+      <p>
+        Notice that in calculating <code>g</code>, we used the weight<code>m<sub>i</sub></code> and
+        error <code>e<sub>i</sub></code> from the following layer, which means that the error and weights in
+        this following layer should have already been calculated.
+        This implies that during a training iteration of a Back Propagation NN, we start
+        modifying the weights at the output layer, and then we proceed backwards on the hidden
+        layers one by one until we reach the input layer.
+        It is this method of proceeding backwards which gives this network its name Backward Propagation.
+      </p>
+
+    </section>
+
+  </section>
+
+  <section>
+    <h3 id="Conclusion">7. Conclusion</h3>
+    <p>NNs are being used in many businesses and applications. Their ability to
+      learn by example is very attractive in environments where the <i>business rules</i>
+      are either not well defined or are hard to enumerate and define.</p>
+
+    <p>You may wander about the formulae and constants values, why did we do this or
+      choose that. That's good but beyond the scope of this article. Check some of the
+      resources for more details.</p>
+
+  </section>
+
+  <section>
+    <h3 id="Resources">8. Resources</h3>
+
+    <ol>
+      <li><i>C++ Neural Networks and Fuzzy Logic</i> by V. B. Rao and H. V. Rao. MIS 1993.</li>
+      <li><i>Neural Network Computing</i> by R. Bharath and J. Drosen. McGraw-Hill 1994.</li>
+      <li><i>Neurocomputing</i> by R. Hecht-Nielsen. Addison-Wesley 1990.</li>
+      <li><i>Neural Computing: An Introduction</i> by R. Beale and T. Jackson. Institute of Physics Publishing 1990.</li>
+      <li><i>Perceptrons - Expanded Edition: An Introduction to Computational Geometry</i> by M. Minsky and S. Papert. MIT Press 1987.</li>
+      <li><a href="http://www.jooneworld.com/">www.jooneworld.com</a>: a free Neural Network
+        engine written in Java.</li>
+    </ol>
+  </section>
+
+</main>
+<footer>
+  <div>
+    Technology Exponent &copy; 2025
+  </div>
+</footer>
+
+</body>
+</html>

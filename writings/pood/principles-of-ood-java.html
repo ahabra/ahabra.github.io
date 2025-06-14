@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title>Principles Of OOD by Robert Martin - Java edition</title>
+  <meta name="keywords" content="Object Orientation, OO, Java, Design">
+  <meta name="description" content="Principles Of Object Oriented Design by Robert Martin - Java edition">
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.jade.min.css">
+<link rel="stylesheet" href="/assets/css/tek271.css">
+</head>
+
+<body>
+<header class="container-fluid">
+  <nav>
+    <ul>
+      <li><h1><a class="title" href="/">Technology Exponent</a></h1></li>
+    </ul>
+    <ul>
+      <li><a href="/code/code.html">Code</a></li>
+      <li><a href="/writings/writings.html">Writings</a></li>
+      <li><a href="/resume/resume.html">Resume</a></li>
+    </ul>
+  </nav>
+  <hr/>
+</header>
+
+
+<main class="container-fluid">
+  <section>
+    <h2>Principles Of Object Oriented Design</h2>
+    <ul>
+      <li>Author: Robert C. Martin</li>
+      <li>www.objectmentor.com</li>
+    </ul>
+    <article class="note">
+      Note: This article was originally written by
+      Robert C. Martin using C++ around 1996. I have converted the examples to
+      Java and updated the text to reflect the Java examples. You can find the
+      text of the original article at:
+      <a href="http://www.gamedev.net/reference/articles/article1482.asp">
+        www.gamedev.net/reference/articles/article1482.asp</a>. <br>
+      Abdul Habra, <a href="http://www.tek271.com">www.tek271.com</a>, February 2005.
+    </article>
+  </section>
+
+  <section>
+    <h3>Contents</h3>
+    <ol>
+      <li><a href="#OpenClose">The Open/Closed Principle</a></li>
+      <li><a href="#LiskovSubstitution">Liskov Substitution</a></li>
+      <li><a href="#DependencyInversion">Dependency Inversion</a></li>
+      <li><a href="#Granularity">Granularity</a></li>
+      <li><a href="#CommonClosure">Common Closure</a></li>
+      <li><a href="#Reuse">Reuse</a></li>
+      <li><a href="#NoCyclicDependency">No Cyclic Dependency</a></li>
+      <li><a href="#StabilityOfDependency">Stability Of Dependency</a></li>
+      <li><a href="#AbstractionAndStability">Abstraction And Stability</a></li>
+    </ol>
+  </section>
+
+  <section>
+    <h3 id="OpenClose">1. The Open/Closed Principle</h3>
+    <article>
+      Software Entities (Classes, Modules, Etc) Should Be Open For Extension, But Closed For Modification.
+      (Bertrand Meyer)
+    </article>
+
+    The open/closed principle is the single most important guide for an object oriented designer. Designing modules
+    whose behavior can be modified without making source code modifications to that module is what yields the benefits
+    of OOD.
+
+    Consider the following:
+    <pre class="code">
+interface IShape {
+  void draw();
+}
+
+interface ISquare extends IShape {}
+
+interface ICircle extends IShape {}
+
+// ...
+
+void drawAllShapes(IShape[] list) {
+  for (shape: list {
+    shape.draw();
+  }
+}</pre>
+
+    <p>
+      Notice that the method <code>drawAllShapes</code> need not be modified when new kinds of shapes are added to
+      the IShape hierarchy. In fact, the method need not even be recompiled.
+    </p>
+
+    <p>
+      Yet, even though I don't make changes to the module, I <b>can</b> change its behavior. Although the method
+      currently only draws circles and squares, I can enhance it to draw any other shape at all, so long as that shape
+      is represented by an object that implements the IShape interface.
+    </p>
+
+    <p>
+      So, I can extend the behavior of the module <code>drawAllShapes</code>, without modifying it at all.
+    </p>
+
+    <p>
+      Now, consider how this would have been done in a language like C.
+    </p>
+    <pre class="code">
+enum ShapeType {circle, square};
+struct Shape {ShapeType itsType;};
+struct Circle {ShapeType itsType; double itsRadius; Point itsCenter;};
+struct Square {ShapeType itsType; double itsSide; Point itsTopLeft;};
+
+void DrawSquare(struct Square*);
+void DrawCircle(struct Circle*);
+
+typedef struct Shape *ShapePointer;
+
+void drawAllShapes(ShapePointer list[], int n) {
+  int i;
+  for (i=0; i < n; i++) {
+    struct Shape* s = list[i];
+    switch (s->itsType) {
+      case square: drawSquare((struct Square*)s);
+                   break;
+      case circle: drawCircle((struct Circle*)s);
+                   break;
+    }
+  }
+}</pre>
+
+    <p>It should be very clear that the <code>drawAllShapes</code> function, as written in C,
+      cannot be extended without direct modification. If I need to create a new shape,
+      such as a Triangle, I must modify the <code>drawAllShapes</code> function.</p>
+    <p>This, by itself, would not be too bad. However, in a complex application the
+      switch/case statement above is repeated over and over again for every kind of
+      operation that can be performed on a shape. These statements are difficult to
+      find, and it is easy to make mistakes when modifying them.</p>
+    <p>Worse, every module that contains such a switch/case statement retains a
+      dependency upon every possible shape that can be drawn, thus, whenever one of
+      the shapes is modified in any way, the modules all need recompilation, and
+      possibly modification.</p>
+    <p>A major factor in software maintenance is the fact that for every change that
+      is made, there is a risk that bugs will be introduced. This wreaks havoc with
+      managers and users because old features that used to work just fine will
+      sometimes break when a new, and apparently unrelated, feature is added.</p>
+    <p>However, when the majority of modules in an application conform to the
+      open/closed principle, then new features can be added to the application by
+      <i>adding new code</i> rather than by <i>changing working code</i>. Thus, the working code
+      is not exposed to breakage. This creates a significant amount of isolation
+      between features, and allows for much easier maintenance.</p>
+  </section>
+
+  <section>
+    <h3 id="LiskovSubstitution">2. Liskov Substitution</h3>
+    <article>
+      Derived Classes Must Be Usable Through The Base Class Interface Without The Need For The User To Know The
+      Difference.
+    </article>
+    <article class="note">
+      Added by Abdul Habra: Barbara Liskov first wrote the Liskov Substitution Principle (LSP) in 1988:
+      <blockquote>
+        "What is wanted here is something like the following substitution property: If for each object o1 of type S
+        there is an object o2 of type T such that for all programs P defined in terms of T, the behavior of P is
+        unchanged when o1 is substituted for o2 then S is a subtype of T."
+      </blockquote>
+      Barbara Liskov, Data Abstraction and Hierarchy, SIGPLAN Notices, 23,5 (May 1988).
+    </article>
+
+    <p>This rule is a logical extension of the open/closed principle. Consider
+      method F that uses type T. Given S a subtype of T, F should be able to use
+      objects of type S without knowing it. In fact, any subtype of T should be
+      substitutable as an argument of F. If this were not true, then F would have to
+      have tests to determine which of the various subtypes it was using. And this
+      breaks the open/closed principle.</p>
+
+    <p>For example: Consider the problem of the Square and the Rectangle.
+      Mathematically a Square <b>is</b> a Rectangle. This tempts us to invoke inheritance
+      between them:</p>
+
+    <pre class="code">
+class Rectangle {
+  private Point itsTopLeftPoint;
+  private double itsHeight;
+  private double itsWidth;
+
+  public Rectangle(Point t1, double h, double w) {
+    itsTopLeftPoint= t1;
+    itsHeight= h;
+    itsWidth= w;
+  }
+
+  public void setHeight(double h) { itsHeight=h; }
+  public void setWidth(double w) { itsWidth=w; }
+
+  public double getHeight() { return itsHeight; }
+  public double getWidth() { return itsWidth; }
+}
+
+class Square extends Rectangle {
+  public Square(Point t1, double s) {
+    super(t1, s, s);
+  }
+
+  public void setHeight(double h) {
+    super.setHeight(h);
+    super.setWidth(h);
+  }
+
+  public void setWidth(double w) {
+    super.setHeight(w);
+    super.setWidth(w);
+  }
+}</pre>
+
+    <p>In the example above, Square inherits from Rectangle, but the methods of
+      Square are overridden to enforce that the height and width of the Rectangle are
+      always the same.</p>
+    <p>Now, consider a method which takes a Rectangle as an argument, and adjusts
+      its width so that it has an aspect ratio of 1/2. i.e. the width is half the
+      height.</p>
+    <pre class="code">
+void halfAspect(Rectangle r) {
+  r.setWidth(r.getHeight()/2);
+}</pre>
+
+    This method fails, rather dismally, if a Square is passed into it as follows:
+
+    <pre class="code">
+Square s;
+halfAspect(s); // this just shrinks both sides by 2</pre>
+
+    <p>
+      Since a user of Rectangle can malfunction when passed a Square, Square is not substitutable for Rectangle. To make
+      a general fix, we would have to add code to halfAspect to test the incoming Rectangle to see if it was a Square:
+    </p>
+
+    <pre class="code">
+void halfAspect(Rectangle r) throws IllegalArgumentException {
+  if (r instanceof Square) throw new IllegalArgumentException();
+  r.setWidth(r.getHeight()/2);
+}</pre>
+
+    And this creates a dependency upon Square. Moreover, every time a new un-substitutable derivative of Rectangle is
+    created, a new test must be added to all methods that would malfunction. This violates the open/closed principle.
+  </section>
+
+  <section>
+    <h3 id="DependencyInversion">3. Dependency Inversion</h3>
+    <article>
+      Details Should Depend Upon Abstractions. Abstractions Should Not Depend Upon Details.
+    </article>
+
+    <p>This is the direction that all dependencies should take in an object oriented program. All high level functions
+      and data structures should be utterly independent of low level functions and data structures.</p>
+    <p>Consider a program that controls a home furnace.</p>
+
+    <pre class="code">
+// assume that waitMinutes() is a method that waits the given number of minutes
+
+void furnace() {
+  while (true) {
+    while (readTemp() > theMinTemp) waitMinutes(1);
+    startFurnace();
+    while (readTemp() < theMaxTemp) waitMinutes(1);
+    stopFurnace();
+  }
+}</pre>
+
+    <p>This is clearly a simple minded algorithm, but it will serve to demonstrate our point. Notice that this algorithm
+      will apply to any furnace at all. Thus this high level algorithm is an abstraction, it is independent of the type
+      of furnace we have.</p>
+    <p>However, most of the time, programmers will take a high level policy and code
+      it in terms of the low level details.</p>
+
+
+    <pre class="code">
+private final static int THERMOMETER_PORT= 0x86;
+private final static int FURNACE_PORT= 0x87;
+private final static int FURNACE_ON= 0x01;
+private final static int FURNACE_OFF= 0x00;
+
+<i>// assume that in(port) is a method that reads an input port and returns an int
+// assume that out(port, value) is a method that writes value to an output port
+// assume that waitMinutes() is a method that waits the given number of minutes
+</i>
+
+void furnace() {
+  while (true) {
+    while (in(THERMOMETER_PORT) > theMinTemp) waitMinutes(1);
+    out(FURNACE_PORT, FURNACE_ON);
+    while (in(THERMOMETER_PORT) < theMaxTemp) waitMinutes(1);
+    out(FURNACE_PORT, FURNACE_OFF);
+  }
+}</pre>
+
+    <p>It should be pretty clear that this high level method is polluted by the details of the actual furnace
+      controller. In fact, the abstraction depends upon the details.</p>
+    <p>It should also be clear that this method cannot be reused with a different kind of furnace. When abstractions
+      depend upon details, the abstractions cannot be reused.</p>
+    <p>We might think that we can improve this by employing structured design as follows:</p>
+
+    <pre class="code">
+private final static int THERMOMETER_PORT= 0x86;
+private final static int FURNACE_PORT= 0x87;
+private final static int FURNACE_ON= 0x01;
+private final static int FURNACE_OFF= 0x00;
+
+void furnace() {
+  while (true) {
+    while (readTemp() > theMinTemp) waitMinutes(1);
+    startFurnace();
+    while (readTemp() < theMaxTemp) waitMinutes(1);
+    stopFurnace();
+  }
+}
+
+<i>
+// assume that in(port) is a method that reads an input port and returns an int
+// assume that out(port, value) is a method that writes value to an output port
+</i>
+
+double readTemp() { return in(THERMOMETER_PORT); }
+void startFurnace() { out(FURNACE_PORT, FURNACE_ON); }
+void stopFurnace() { out(FURNACE_PORT, FURNACE_OFF); }</pre>
+
+    <p>However, while this does break the direct dependency of the furnace method
+      upon the details, there is still a one to one binding from the name <code>startFurnace</code>
+      to the constant <code>FURNACE_PORT</code>. Thus, although we can get some
+      reusability by recoding <code>furnace</code>, we cannot gain reusability in the same
+      program or application.</p>
+    <p>However, consider the following object oriented design.</p>
+
+    <pre class="code">
+interface IFurnace {
+  public void start();
+  public void stop();
+}
+
+interface IThermometer {
+  public double read();
+}
+
+abstract class AbstractRegulator {
+  protected IFurnace itsFurnace;
+  protected IThermometer itsThermometer;
+  public abstract void regulate(double minTemp, double maxTemp);
+}
+
+class Regulator extends AbstractRegulator {
+  public Regulator(IFurnace f, IThermometer t) {
+    itsFurnace= f;
+    itsThermometer= t;
+  }
+
+  // assume that waitMinutes() is a method that waits the given number of minutes
+  public void regulate(double minTemp, double maxTemp) {
+    while(true) {
+      while (itsThermometer.read() > minTemp) waitMinutes(1);
+      itsFurnace.start();
+      while (itsThermometer.read() < maxTemp) waitMinutes(1);
+      itsFurnace.stop();
+    }
+  }
+}
+
+class DetailedFurnace implements IFurnace {
+  private final static int FURNACE_PORT= 0x87;
+  private final static int FURNACE_ON= 0x01;
+  private final static int FURNACE_OFF= 0x00;
+
+  // assume that out(port, value) is a method that writes value to an output port
+  public void start() { out(FURNACE_PORT, FURNACE_ON); }
+  public void stop() { out(FURNACE_PORT, FURNACE_OFF); }
+}
+
+class DetailedThermometer implements IThermometer {
+  private final static int THERMOMETER_PORT= 0x86;
+
+  // assume that in(port) is a method that reads an input port and returns an int
+  public double read() { return in(THERMOMETER_PORT); }
+}</pre>
+
+    <p>Notice that now the high level algorithm depends only upon abstract classes and interfaces.
+      Notice also that the details depend only upon the abstractions. Notice that the Regulator class can be reused with
+      any derivative of a IFurnace and a IThermometer. Moreover, any application can have many instance of Regulators,
+      Thermometers, and Furnaces. Thus, we could reuse this algorithm in, say, an
+      application that controls the reaction temperature of many different vessels....</p>
+
+    <p>Notice also that there is much more code in the OO version. It takes code to
+      invert dependencies. This is the price we pay for the reusability and
+      maintainability that dependency inversion affords.</p>
+
+  </section>
+
+  <section>
+    <h3 id="Granularity">4. Granularity</h3>
+    <article>
+      The Granule Of Reuse Is The Same As The Granule Of Release. Only Components That Are Released Through A Tracking
+      System Can Be Effectively Reused.
+    </article>
+
+    <p>Reuse does not come automatically. One cannot simply write a class and claim
+      that it is reusable. First, a reusable class probably has several classes that
+      it collaborates with. Thus the class is not reusable in isolation, it must be
+      reused in conjunction with other classes. Second, reusers do not want the
+      classes that they are reusing to change out from under them. So they will
+      require some kind of release tracking system to be put into place.</p>
+
+    <p>It should be stated at this point that <q>code copying</q> is an inferior form of
+      code reuse. Code copying puts the burden of maintenance upon the reuser, not
+      upon the author. In such cases, the only thing that is being reused is the
+      initial design of the code. Yet we all know that initial design is worth a small
+      percentage of the total effort through the lifecycle of a project. Thus we want
+      reusable code to be maintained by the author, or by a common maintainer. We want
+      all the reusers to benefit from the single source of maintenance.</p>
+
+    <p>In order to achieve reuse of this kind, the reusable software must be put
+      into a form that the reusers can manage. Specifically, this means that it must
+      be segregated into <q>chunks</q> which are relatively independent of each other, and
+      given version numbers so that the reusers can track which version of a chunk
+      they are currently using.</p>
+
+    <p>The chunks must be small enough so that reusers can pick and choose the
+      software that they want to reuse. Reuse is not worth much when it is an
+      all-or-nothing proposition.</p>
+
+    <p>When changes are made to these released <q>chunks</q>, new version numbers must be
+      assigned, and notification must be given to all reusers. Reusers will then
+      decide if they wish to use the new release immediately, delay such use until
+      their software can be made compatible, or reject such use and take over
+      maintenance of the previous version themselves.</p>
+
+    <p>In the absence of a release strategy and version numbering scheme, reuse of
+      commonly maintained software modules is extremely difficult, if not impossible.
+      Thus, we say that <q>the granule of reuse is the same as the granule of release.</q></p>
+
+    <p>Now this has implications for the way that object oriented programs should be
+      structured. One such structuring mechanism is employed by Booch. He organizes a
+      group of cohesive classes into an entity called a class category. Class
+      categories can be used as the granule of release, and therefore the granule of
+      reuse.</p>
+
+  </section>
+
+  <section>
+    <h3 id="CommonClosure">5. Common Closure</h3>
+    <article>
+      Classes Within A Released Component Should Share Common Closure. That Is, If One Needs To Be Changed, They All Are
+      Likely To Need To Be Changed. What Affects One, Affects All.
+    </article>
+
+    <p>Released components are the targets for dependencies. In fact, the reason
+      that they are <q>released</q> is to limit the affect of changes upon the users of the
+      component. This implies that releases should not occur often, and that they
+      should occur in isolation where possible.</p>
+
+    <p>The worst case scenario is when a change to the system causes modification of
+      all the released components, such that they all need to be re-released. When
+      changes occur, we want those changes to affect the smallest possible number of
+      released components.</p>
+
+    <p>In OOD, the released component is the <q>category</q>. And the principle we are
+      discussing is the principle of <q>Common Closure within Categories.</q> This
+      principle is the first and most important of the three rules for category
+      cohesion. A category is cohesive, if the classes within it are all closed to the
+      same kinds of modifications.</p>
+
+    <p>The open closed principle states that a class should be open for extension
+      but closed for modification. This is an ideal that cannot be completely
+      achieved. Regardless of the design of a class, there will always exist some kind
+      of change that will force the class to be opened. However, do not have to
+      protect ourselves from every kind of modification. We can anticipate the kinds
+      of modifications that are likely to be requested, and protect ourselves from
+      those.</p>
+
+    <p>Thus, we design our classes to be closed to the most likely kinds of changes
+      that we can foresee. This means that the closure of a class is partial, and
+      specifically targeted at certain kinds of changes.</p>
+
+    <p>The principle of common closure states that, given a particular kind of
+      change, either all of the classes within a category are closed to it, or they
+      are all open to it.</p>
+
+    <p>When this principle can be achieved, changes do not propagate through the
+      system. Rather they focus upon one, or a few categories, while the rest of the
+      categories remain unaffected. This greatly lessens the number of categories that
+      are affected by a change, and reduces the frequency with which categories must
+      be released.</p>
+  </section>
+
+  <section>
+    <h3 id="Reuse">6. Reuse</h3>
+    <article>
+      Classes Within A Released Component Should Be Reused Together. That Is, It Is Impossible To Separate The
+      Components From Each Other In Order To Reuse Less Than The Total.
+    </article>
+
+    <p>When a user decides to reuse a component, he creates a dependency upon the
+      whole component. When a new release of that component is created, the user must
+      reintroduce that new release into his existing applications. Therefore, the user
+      will want each component to be as focused as possible. If the component contains
+      classes which the user does not make use of, then the user may be placed in the
+      position of accepting the burden of a new release which does not affect any of
+      the classes within the component that he is using. Thus, components should be
+      kept relatively narrow. If the user uses one of the classes in the component,
+      then it should be extremely likely that he should reuse all the other classes in
+      the component.</p>
+
+    <p>Generally, this kind of focus is enforced by the relationships that exist
+      between classes that are reused together. Those relationships represent
+      dependencies that force the user to bring along all the classes within a
+      component.</p>
+
+    <p>It is important that dependencies that are associated with reuse be
+      encapsulated within a single component where possible. If the reuse of a
+      particular class within a component forces the reuse of other components, then
+      the user has a bigger reuse burden.</p>
+  </section>
+
+  <section>
+    <h3 id="NoCyclicDependency">7. No Cyclic Dependency</h3>
+    <article>
+      Classes Within A Released Component Should Be Reused Together. That Is, It Is Impossible To Separate The
+      Components From Each Other In Order To Reuse Less Than The Total.
+    </article>
+
+    <p>Consider an application that is divided up into many different class categories. A given class category can be
+      released, only when it is compatible with those categories that it depends upon.</p>
+
+    <p>This ability to release an application in pieces facilitates development. If applications cannot be released in
+      pieces, then the developers interfere with each other as they are making changes to their code.</p>
+
+    <p>The typical horror story is of an engineer who works all day to get his stuff working. He goes home a night
+      satisfied. However upon returning the next morning, he is dismayed to find that his stuff no longer works. The
+      reason: Somebody stayed later than he did and changed something that he depended upon.</p>
+
+    <p>If this happened only once in a while, it would not be so bad, but in large projects it can happen on a daily
+      (even hourly) basis. Thus we need a way to release the application in pieces so that developers can choose to
+      depend upon older releases of the categories that they depend upon.</p>
+
+    <p>However, when there are dependency cycles, then this rational scheme for developing applications breaks down. All
+      of the categories within the cycle must be released simultaneously.</p>
+
+    <p>Consider the following diagram:</p>
+
+    <figure>
+      <img src="fig1.png" alt="categories with cyclic dependency">
+      <figcaption>(Abdul Habra: Converted the diagram to graphic)</figcaption>
+    </figure>
+
+    <p>The developers that are working in the <i>Transport</i> category choose to work with older, more stable, versions
+      of Elevator and Conveyor, which in turn depend upon an old version of Alarm. When Transport wants to make a
+      release, they simply test their category with the appropriate releases of the dependent categories, and then
+      release it.</p>
+
+    <p>However, if Alarm called a function that belonged to 'Control Panel', thus creating a cyclic dependency, then
+      Transport could not work without old and stable versions of Elevator and Conveyor, which could not work without a
+      stable version of Alarm, which could not work without a stable version of Control Panel, which needs a stable
+      version of Transport. Since we are trying to make changes to Transport, all of the other categories are suddenly
+      invalidated, and the entire cycle must be released at the same time.</p>
+
+    <p>Thus, cycles in the dependency structure interfere with the ability to release an application in pieces. However
+      there is even more harm that they can do. Consider again the diagram above. The developers working in 'Elevators'
+      want to run some unit tests. They must link with Alarm. However, if we assume that the same cycle exists, (i.e.
+      Alarm calls a function in Control Panel) then the unit test must link with Control Panel, which must link with
+      Revenue, which must link with the Database. And the database doesn't work.</p>
+
+    <p>The developers of 'Elevator' are really angry. They don't need the database. They don't want to link with the
+      database. The database code is 14 megabytes and takes 45 minutes to link in; so why do they have to use it? The
+      'Elevator' developers go find the developer in 'Alarm' who created the cyclic dependency upon 'Control Panel' and
+      take him out back for a little lesson in software engineering.</p>
+
+    <p>*** How can the cycle be broken. Simple. Whenever there is a cycle in the dependency graph of class categories,
+      that cycle can be broken by splitting one of the categories into two. In this case, we could split the <i>Control
+        Panel</i> category into two categories as shown below:</p>
+
+    <figure>
+      <img src="fig2.png" alt="Category split into two">
+      <figcaption>(Abdul Habra: Converted the diagram to graphic)</figcaption>
+    </figure>
+
+    <p>The new category <i>Control Panel Utilities</i> contains the function that Alarm wants to call.</p>
+
+  </section>
+
+  <section>
+    <h3 id="StabilityOfDependency">8. Stability Of Dependency</h3>
+    <article>
+      Dependencies Between Released Categories Must Run In The Direction Of Stability. The Dependee Must Be More Stable
+      Than The Depender.
+    </article>
+
+    <p>One could view this as an axiom, rather than a principle, since it is impossible for a category to be more stable
+      than the categories that it depends upon. When a category changes it always affects the dependent categories (even
+      if for nothing more than a retest/revalidation). However the principle is meant as a guide to designers. Never
+      cause a category to depend upon less stable categories. </p>
+
+    <p>What is stability? The probable change rate. A category that is likely to undergo frequent changes is instable. A
+      category that will change infrequently, if at all, is stable.</p>
+
+    <p>There is an indirect method for measuring stability. It employs the axiomatic nature of this principle. Stability
+      can be measured as a ratio of the couplings to classes outside the category.</p>
+
+    <p>A category which many other categories depend upon is inherently stable. The reason is that such a category is
+      difficult to change. Changing it causes all the dependent categories to change.</p>
+
+    <p>On the other hand, a category which depends on many other categories is instable, since it must be changed
+      whenever any of the categories it depends upon change.</p>
+
+    <p>A category which has many dependents, but no dependees is ultimately stable since it has lots of reason not to
+      change and no reason to change. (This ignores the categories intrinsic need to change based upon bugs and feature
+      drift).</p>
+
+    <p>A category that depends upon many categories but has no dependents is ultimately instable since it has no reason
+      not to change, and is subject to all the changes coming from the categories it depends upon.</p>
+
+    <p>So this notion of stability is positional rather than absolute. It measures stability in terms of a category's
+      position in the dependency hierarchy. It says nothing about the subjective reasons that a category might need
+      changing, and focuses only upon the objective, physical reasons that facilitate or constrain changes.</p>
+
+    <p>To calculate the Instability of a category <code>(I)</code> count the number of classes, outside of the category,
+      that depends upon classes within the category. Call this number <code>Ca</code>. Now count the number of classes
+      outside the category that classes within the category depend upon. Call this number <code>Ce</code>.
+      <code>I = Ce / (Ca + Ce)</code>. This metric ranges from 0 to 1, where 0 is ultimately stable, and 1 is ultimately
+      instable.</p>
+
+    <p>In a dependency hierarchy, wherever a category with a low <code>(I)</code> value depends upon a category with a
+      high <code>(I)</code> value, the dependent category will be subject to the higher rate of change of the category
+      that it depends upon. That is, the category with the high <code>(I)</code> metric acts as a collector for all the
+      changes below it, and funnels those changes up to the category with the low <code>(I)</code> metric.</p>
+
+    <p>Said another way, a low <code>(I)</code> metric indicates that there are many relatively many dependents. We
+      don't want these dependents to be subject to high rates of change. Thus, if at all possible, categories should be
+      arranged such that the categories with high <code>(I)</code> metrics should depend upon the categories with low
+      <code>(I)</code> metrics.</p>
+
+  </section>
+
+  <section>
+    <h3 id="AbstractionAndStability">9. Abstraction And Stability</h3>
+    <article>
+      The More Stable A Class Category Is, The More It Must Consist Of Abstract Classes. A Completely Stable Category
+      Should Consist Of Nothing But Abstract Classes.
+    </article>
+
+    <p>The stability being referred to in this principle, is again the <code>(I)</code> metric which is based upon
+      <q>positional</q> stability. That is, a module that is in a highly stable position in the dependency graph should
+      also be highly abstract.</p>
+
+    <p>The justification for this principle is based upon the idea that executable code (The implementations of methods)
+      changes more often than the interfaces between modules. Therefore interfaces have more intrinsic stability than
+      executable code. In C++, it is more likely that you will change a .cc file than a .h file.</p>
+
+    <p>In some languages, the division between implementation and interface is very clear cut. But in others (like C++)
+      it is blurred. The stability of the .h file is not as great as it could be because private functions and private
+      variables are likely to need changing as the implementation evolves. In such languages, the maximum stability
+      comes from pure interfaces. A class that contains pure interfaces is an abstract class.</p>
+
+    <p>Thus, we can measure the abstraction of a category by computing the ratio of abstract classes to total
+      classes:</p>
+
+    <pre class="code">A = (# abstract classes) / (# of classes).</pre>
+
+    <p>For example, if a class category contains 10 classes, of which 6 are abstract then <code>A = .6</code>.
+      <code>A</code> will always range from [0,1].</p>
+
+    <p>Principle 9 says that categories that are placed into positions of stability ought to be abstract. The reason for
+      this that the higher the abstraction of the category, the higher its intrinsic stability. And since intrinsic
+      stability is limited by positional stability, intrinsically stable modules should also have positional
+      stability.</p>
+
+    <p>Consider a category with very low abstraction. Such a category has mostly concrete classes in it. If it is put in
+      a place of stability, then many other categories will depend upon it. And thus, it will be difficult to change its
+      implementation. On the other hand, consider a category with very high abstraction. Such a category consists mostly
+      of abstract classes. If we put this category into a position of very low stability, then very few other categories
+      will depend upon it. And then, of what use is the abstract interface?</p>
+
+    <p>But there is another reason to put abstractions in positions of stability. And that reason goes back to principle
+      #1; the open closed principle. We want concrete categories to depend upon abstract categories so that the
+      derivatives of those abstract categories can be controlled by the concrete categories. This is reuse. The concrete
+      categories can be reused with different derivatives of the abstract categories. Also, when the implementations of
+      those derivative categories change, the abstract category is not affected, and so the concrete categories that
+      depend upon it are also unaffected. Thus, the concrete categories are open to be extended, but do not need to be
+      modified in order to achieve that extension.</p>
+
+    <p>The open closed principle leads us to the realization that we do not want all of our categories to be stable.
+      Stability is inflexibility. A stable category is difficult to change. And we do not want our applications to be
+      difficult to change. But the open closed principle allows that a module that is highly stable (closed for
+      modification) can also be open for extension. Yet this can only happen if the extension takes place in a
+      derivative of the stable abstraction. Thus, in the ideal world our models would consist of two kinds of
+      categories. Completely abstract and stable categories that are depended upon by completely concrete and instable
+      categories.</p>
+
+    <p>We are now in a position to define the relationship between stability <code>(I)</code> and abstractness
+      <code>(A)</code>. We can create a graph with <code>A</code> on the vertical axis and <code>I</code> on the
+      horizontal axis. If we plot the two <q>good</q> kinds of categories on this graph, we will find the categories
+      that are maximally stable and abstract at the upper left at (0,1). The categories that are maximally instable and
+      concrete are at the lower right at (1,0).</p>
+
+    <p>But not all categories can fall into one of these two positions. Categories have degrees of abstraction and
+      stability. For example, it is very common that one abstract class derives from another abstract class. The
+      derivative is an abstraction that has a dependency. Thus, though it is maximally abstract, it will not be
+      maximally stable. Its dependency will decrease its stability.</p>
+
+    <p>Consider a category with <code>A=0</code> and <code>I=0</code>. This is a highly stable and concrete category.
+      Such a category is not desirable because it is rigid. It cannot be extended because it is not abstract. And it is
+      very difficult to change because of its stability.</p>
+
+    <p>Consider a category with <code>A=1</code> and <code>I=1</code>. This category is also undesirable (perhaps
+      impossible) because it is maximally abstract and yet has no dependents. It, too, is rigid because the abstractions
+      are impossible to extend.</p>
+
+    <p>But what about a category with <code>A=0.5</code> and <code>I=0.5</code>? This category is partially extensible
+      because it is partially abstract. Moreover, it is partially stable so that the extensions are not subject to
+      maximal instability. Such a category seems <q>balanced</q>. Its stability is in balance with its abstractness.</p>
+
+    <p>Consider again the <q>A-I</q> graph (below). We can draw a line from (0,1) to (1,0). This line represents
+      categories whose abstractness is <q>balanced</q> with stability. Because of its similarity to a graph used in
+      astronomy, I call this line the <q>Main Sequence</q>.</p>
+
+    <figure>
+      <img src="fig3.png" alt="A-I graph">
+      <figcaption>(Abdul Habra: Converted the diagram to graphic)</figcaption>
+    </figure>
+
+    <p>A category that sits on the main sequence is not <q>too abstract</q> for its stability, nor is <q>too
+      instable</q> for its abstractness. It has the <q>right</q>> number of concrete and abstract classes in proportion
+      to its positional stability. Clearly, the most desirable positions for a category to hold are at one of the
+      two endpoints of the main sequence. However, in my experience only about half the categories in a project can have
+      such ideal characteristics. Those other categories have the best characteristics if they are on or close to the
+      main sequence.</p>
+
+    <p>This leads us to another metric. If it is desirable for categories to be on or close to the main sequence, we can
+      create a metric which measures how far away a category is from this ideal.</p>
+
+    <p>D : Distance : <code>|(A+I-1)/root2|</code> : The perpendicular distance of a category from
+      the main sequence.</p>
+
+    <p>This metric ranges from <code>[0, ~0.707]</code>. (One can normalize this metric to range
+      between [0,1] by using the simpler form <code>|(A+I-1)|</code>. I call this metric <code>D'</code>).</p>
+
+    <p>Given this metric, a design can be analyzed for its overall conformance to the main sequence. The <code>D</code>
+      metric for each category can be calculated. Any category that has a D value that is not near zero can be
+      reexamined and restructured.</p>
+
+    <p>Statistical analysis of a design is also possible. One can calculate the mean and variance of all the D metrics
+      within a design. One would expect a conformant design to have a mean and variance which were close to zero. The
+      variance can be used to establish <q>control limits</q> which can identify categories that are <q>exceptional</q>
+      in comparison to all the others.</p>
+
+  </section>
+
+</main>
+<footer>
+  <div>
+    Technology Exponent &copy; 2025
+  </div>
+</footer>
+
+</body>
+</html>

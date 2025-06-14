@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title>Object Oriented Tips For The C Programmer, Part II</title>
+  <meta name="keywords" content="C Object Oriented Tips OO Programming">
+  <meta name="description" content="Object oriented tips for the C programmer, Part II">
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.jade.min.css">
+<link rel="stylesheet" href="/assets/css/tek271.css">
+</head>
+
+<body>
+<header class="container-fluid">
+  <nav>
+    <ul>
+      <li><h1><a class="title" href="/">Technology Exponent</a></h1></li>
+    </ul>
+    <ul>
+      <li><a href="/code/code.html">Code</a></li>
+      <li><a href="/writings/writings.html">Writings</a></li>
+      <li><a href="/resume/resume.html">Resume</a></li>
+    </ul>
+  </nav>
+  <hr/>
+</header>
+
+
+
+<main class="container-fluid">
+  <section>
+    <h3>OO Tips For The C Programmer - Part II</h3>
+    <ul>
+      <li>Author: Abdul Habra</li>
+      <li>Version: 0.1.1</li>
+      <li>Date: October 1995</li>
+    </ul>
+
+    <small><i>Note: This article was published originally in the Cap Gemini America -
+      Cincinnati Unit Newsletter.</i>
+    </small>
+  </section>
+  <hr>
+
+  <section>
+    <h3>Introduction</h3>
+    <P>
+      This is the second article in a series on Object Oriented programming techniques using C. In the previous
+      installment of this series of articles I explained how to use C to define a class. The
+      <code>DISTANCE</code> class was used as an example. In this installment
+      <i>encapsulation</i> will be presented including how to define public and private members of a class.
+      Encapsulation is the ability to hide the internal implementation details of an object from the outside world.
+    </P>
+  </section>
+
+
+  <section>
+    <h3>Basic Concepts</h3>
+    This section provides a brief explanation of some C constructs that will be used later to support encapsulation.
+
+    <h4>Static Functions</h4>
+    <p>
+      A static function is a function that is only visible in the file that contains it. A static function is defined
+      by adding the word<code>static</code> at the beginning of the function definition. For example, if we have a
+      file called <code>test1.c</code> that has the function:
+    </p>
+    <pre class="code">static int square(int x) { return x*x; }</pre>
+
+    then the only functions that can use<code>square()</code> are functions defined in the file
+    <code>test1.c</code>.
+
+    <h4>Casting</h4>
+    Casting provides the ability to convert a value to a different type. To cast an expression, put the target data
+    type in parentheses directly before the expression. For example:
+
+    <pre class="code">float x;
+x= (float) 1;</pre>
+
+
+    assigns the<code>int</code> value 1 to the<code>float</code> variable <code>x</code>.
+    In the previous installment we used casting in the constructor:
+
+    <pre class="code">DISTANCE* ob=(DISTANCE*) calloc(1, sizeof(DISTANCE));</pre>
+
+    <p>
+      The<code>calloc()</code> function returns a<code>void</code> pointer, and we cast it to
+      <code>DISTANCE</code> pointer in order to assign this value to
+      <code>ob</code> without the compiler generating any warning messages.
+    </p>
+
+    <p>
+      In summary, if we have the cast:<code>(MyType)MyValue</code> we will be telling the compiler
+      to treat <code>MyValue</code> as if it is of type <code>MyType</code>.
+    </p>
+  </section>
+
+  <section>
+    <h3>Encapsulation</h3>
+    We need to have a facility in which the methods of a class can only be accessed through the class.
+    Additionally, the class may have members that should not be visible outside the class definition, i.e.
+    <i>private</i>.
+
+    <h4>Methods Scope</h4>
+    For a class, only its definition should be visible by the class' users. The implementation of the class should be
+    completely hidden. The solution is simple:
+
+    <ol>
+      <li>Put the class definition in a <i>header</i> file <code>FileName.h</code></li>
+      <li>Put a <i>prototype</i> for the constructor in the header file.</li>
+      <li>Put the class implementation in a <i>source</i> file <code>FileName.c</code></li>
+      <li>Define all the methods (except the constructor) in the source file to be <I>static</I>.</li>
+      <li>Now, whenever you want to use the class, include its header file.</li>
+    </ol>
+
+    <p>
+      For our<code>DISTANCE</code> class,
+      put the class definition (i.e. <code>struct</code>) in<code>distance.h</code>,
+      put the implementation of its methods in <code>distance.c</code>
+      and make all the methods <i>static</i> (except <code>ConstructDistance</code>). For example:
+    </p>
+
+    <pre class="code">static float DistanceKm(DISTANCE* this) {
+  return this->DistanceMiles*1.609;
+}</pre>
+
+
+    <h4>Private Members</h4>
+    Although the class implementation is hidden from its users, all the class members are accessible by anyone who
+    this class. We need to have a mechanism in which some of the class's members are inaccessible by the class users.
+    In our <code>DISTANCE</code> class, suppose we want to be able to <i>set</i> and
+    <i>get</i> the distance in both units of Miles or Kilometer.
+
+    <ol>
+      <li>To start, define the class definition as follows:
+        <h5>distance.h</h5>
+        <pre class="code">typedef struct {
+  void* private;
+  void (*Destructor)();
+  void (*SetMiles)();
+  float (*GetMiles)();
+  void (*SetKm)();
+  float (*GetKm)();
+} DISTANCE;
+DISTANCE* ConstructDistance();</pre>
+        Notice that there is no data member to store the distance value in the class definition.
+        Additionally, there is a <code>void</code> pointer named <code>private</code>.
+      </li>
+
+      <li>Create the following type in <code>distance.c</code>
+        <pre class="code">
+typedef struct {
+  float DistanceMiles;
+} PrivateType;</pre>
+        Put in this<code>PrivateType</code> all the class members that you wish to make private.
+      </li>
+
+      <li>In the <I>constructor</I>, assign the class member<code>private</code> to a memory
+        allocated type, <code>PrivateType</code>:
+        <pre class="code">ob->private= calloc(1, sizeof(PrivateType));</pre>
+      </li>
+
+      <li>Update the <i>destructor</i> to free <code>private</code>:
+        <pre class="code">free((*this)->private);</pre>
+      </li>
+
+      <li>Methods of the class can access <code>DistanceMiles</code> as a member in a casted
+        <code>private</code>, for example:
+        <pre class="code">
+static void SetMiles(DISTANCE* this, float miles) {
+  PrivateType* p= (PrivateType*)this->private;
+  p->DistanceMiles= miles;
+}</pre>
+        Notice how<code>private</code> -which is a void pointer- is <i>casted</i> to
+        a<code>PrivateType</code> pointer.
+      </li>
+
+      <li>Remember to have <code>DISTANCE* this</code> as the first argument of every method.</li>
+      <li>If anybody uses the<code>DISTANCE</code> class, they can not access the contents of
+        <code>PrivateType</code> because it is defined in <code>distance.c</code>
+      </li>
+      <li>Although the class has a public member <code>private</code>, this member is only a void
+        pointer. The user of the class has no way of accessing the contents of this private without
+        accessing the source file <code>distance.c</code></li>
+      <li>The only discipline required from the class user is not to change the value of
+        <code>private</code> after the class construction.
+      </li>
+    </ol>
+  </section>
+
+
+  <section>
+    <h3>Conclusion</h3>
+    It is shown here that with utilizing some standard C constructs we are capable of supporting encapsulation. This
+    is achieved with a simple approach. Mainly, define all methods implementation to be static and have a class member
+    that the user can not change (private). In the next installment of this series of articles, I will discuss
+    inheritance and polymorphism then see if we could implement them using C.
+  </section>
+
+  <section>
+    <h3>Acknowledgment</h3>
+    I would like to thank both of Carol Viera and Srinivasa Komatineni for their review and suggestions.
+  </section>
+
+  <section>
+    <h3>References</h3>
+
+    <ol>
+      <li>Stroutstrup, Bjarne. (1991) <i>The C++ Programming Language, Second Edition</i>.
+        Addison-Wesley Publishing Company.
+      </li>
+      <li>Darnell, Peter A. and Margolis, Philip E. (1988) <i>Software Engineering in C</i>.
+        Springer-Verlag New York Inc.
+      </li>
+    </ol>
+  </section>
+
+</main>
+<footer>
+  <div>
+    Technology Exponent &copy; 2025
+  </div>
+</footer>
+
+</body>
+</HTML>

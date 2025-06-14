@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title>Object Oriented Tips For The C Programmer, Part I</title>
+  <meta name="keywords" content="C Object Oriented Tips OO Programming">
+  <meta name="description" content="Object oriented tips for the C programmer, Part I">
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.jade.min.css">
+<link rel="stylesheet" href="/assets/css/tek271.css">
+</head>
+
+<body>
+<header class="container-fluid">
+  <nav>
+    <ul>
+      <li><h1><a class="title" href="/">Technology Exponent</a></h1></li>
+    </ul>
+    <ul>
+      <li><a href="/code/code.html">Code</a></li>
+      <li><a href="/writings/writings.html">Writings</a></li>
+      <li><a href="/resume/resume.html">Resume</a></li>
+    </ul>
+  </nav>
+  <hr/>
+</header>
+
+
+<main class="container-fluid">
+  <section>
+    <h2>OO Tips For The C Programmer - Part I</h2>
+    <ul>
+      <li>Author: Abdul Habra</li>
+      <li>Version: 0.1.1</li>
+      <li>Date: July 1995</li>
+    </ul>
+
+    <small><i>Note: This article was published originally in the Cap Gemini America -
+      Cincinnati Unit Newsletter.</i>
+    </small>
+  </section>
+  <hr>
+
+
+  <section>
+    <h3>Introduction</h3>
+    <p>
+      Are you a C programmer and want to use some of the Object Oriented (OO) programming techniques but don't have the
+      time to learn C++ or C++ simply is not available in your programming environment, this article will show you how
+      to
+      use C to get started. (Note: This article assumes that you already know C and understand the basic OO concepts.)
+    </p>
+  </section>
+
+  <section>
+    <h3>Basic Concepts</h3>
+    <p>
+      This section provides a quick summary of some Object Oriented concepts and serves as a reminder of some C
+      constructs.
+    </p>
+
+    <ul>
+      <li>
+        <b>Encapsulation</b>: To hide the internal implementation details of an object from the outside world.
+      </li>
+      <li>
+        <b>Inheritance</b>: To create a new class by adding new characteristics to a base class to form a derived class.
+      </li>
+      <li>
+        <b>Polymorphism</b>: Derived classes of a base class receive and respond to the same message, but their response
+        may be different.
+      </li>
+      <li>
+        <b>Function Pointer</b>: Holds the address of a function of a certain type. e.g.,
+        <code>int (*foo)()</code> means that <code>foo</code> points to a
+        function that returns an integer. Let's say we have the following function:
+        <pre class="code">int square(int x) { return x*x; }</pre>
+        We could assign the address of <code>square</code> to <code>foo</code>:
+        <pre class="code">foo = square;</pre>
+        Now if we have <code>n</code> as an integer, we can say:
+        <pre class="code">n= foo(3);
+<i>/* n is 9 now */</i></pre>
+
+        Notice how calling <code>foo()</code> is equivalent to calling
+        <code>square()</code>. Understanding the concepts of function pointers is important to understand
+        the following sections.
+      </li>
+    </ul>
+  </section>
+
+  <section>
+    <h3>Class Definition</h3>
+    To define a class just declare a <code>typedef struct</code> that contains all the members needed, e.g.,
+    <pre class="code">typedef struct { ... } MyClass;</pre>
+    Methods are defined as function pointer class members. Let's define a simple class that stores a distance quantity
+    in miles:
+
+    <pre class="code">
+typedef struct {
+  float DistanceMiles;
+  float (*DistanceKm)();
+  /* get the distance in KiloMeters */
+} DISTANCE;</pre>
+    <p>
+      Notice that <code>DistanceKm</code> is just a pointer to a function that returns a <code>float</code>.
+    </p>
+    <P>
+      Now you may wonder where the actual implementation of <code>DistanceKm</code> is, so let's
+      define this function:
+    </P>
+    <pre class="code">
+float DistanceKm(DISTANCE* this) {
+  return this->DistanceMiles*1.609;
+}</pre>
+
+    <p>
+      This function takes an argument that is a pointer to <code>DISTANCE</code> class and uses its
+      <code>DistanceMiles</code> member to find the distance in Km. Notice that till now we didn't
+      define any object (variable) of type
+      <code>DISTANCE</code> because the class is just a declaration. In order to create an object of
+      this class, just allocate some memory for it on the heap:
+    </p>
+    <pre class="code">DISTANCE* ob= (DISTANCE*) calloc(1, sizeof(DISTANCE));</pre>
+
+    Additionally, we need to assign the function pointer member in <code>ob</code> to the address of
+    <code>DistanceKm()</code> function:
+
+    <pre class="code">ob-&gt;DistanceKm= DistanceKm;</pre>
+
+    <p>
+      Notice that allocating the memory and initializing the function pointer needs to be done for every object of the
+      class once it is created.
+      Sounds like a <i>constructor</i>, doesn't it? So let's create a constructor function that create and initialize
+      an object of type <code>DISTANCE</code> and returns its address:
+    </p>
+    <pre class="code">DISTANCE* ConstructDistance() {
+  DISTANCE* ob= (DISTANCE*) calloc(1, sizeof(DISTANCE));
+  ob->DistanceKm= DistanceKm;
+  return ob;
+}</pre>
+
+    <p>
+      You may wonder why didn't we make the <code>ConstructDistance()</code> a member of the
+      <code>DISTANCE</code> class, and the answer is that we can't call a member function, i.e.
+      method, before creating and initializing the class, which is what the function
+      <code>ConstructDistance()</code> does.
+    </p>
+    <p>
+      Having a constructor that allocates memory on the heap calls for a <I>destructor</I> that will free this memory.
+      The following is such a destructor:
+    </p>
+
+    <pre class="code">void Destructor(DISTANCE** this) {
+  free(*this);
+  *this= 0;
+}</pre>
+
+    <p>
+      The <code>Destructor()</code> is called after an object is created when it is no longer needed.
+      This implies that the <code>Destructor()</code> can be a member function of the class defined like this:
+    </p>
+    <pre class="code">void (*Destructor)();</pre>
+
+    Its address has to be initialized in the constructor:
+    <pre class="code">this-&gt;Destructor= Destructor;</pre>
+
+    In order to call the <code>Destructor()</code>:
+    <pre class="code">ob-&gt;Destructor(&amp;ob);</pre>
+
+    Next is the final definition of the class and its constructor:
+    <pre class="code">typedef struct {
+  float DistanceMiles;
+  float (*DistanceKm)();
+  void (*Destructor)();
+} DISTANCE;
+
+DISTANCE* ConstructDistance() {
+  DISTANCE* ob= (DISTANCE*) calloc(1, sizeof(DISTANCE));
+  ob->DistanceKm= DistanceKm;
+  ob->Destructor= Destructor;
+  return ob;
+}</pre>
+
+    If you actually compile the above code you may need to put <i>prototypes</i> for the member functions -methods-
+    before the constructor.
+  </section>
+
+  <section>
+    <h3>Conclusion</h3>
+    This article showed how to define a class, and create and destroy objects of this class. In a next article I will
+    show
+    how to implement encapsulation and how to define private and public members of a class. If there is interest I will
+    show how to implement inheritance, polymorphism and templates. For those who want more challenging reading I could
+    elaborate on how to make dynamic objects; i.e., objects that can have their definition changed at run-time. And for
+    those who want more thought provoking tips, I could show how to distribute these objects; i.e., where objects of a
+    class do not have to be in the same process or even on the same machine.
+  </section>
+
+  <section>
+    <h3>Acknowledgment</h3>
+    I would like to thank both of Jay Patel and Carol Viera for their ideas and help.
+    <hr>
+  </section>
+
+  <section>
+    <h3>References</h3>
+    <ol>
+      <li>Barakakati, Naba. (1991) <i>Object Oriented Programming in C++</i>.
+        Indiana:SAMS.
+      </li>
+      <li>Stroutstrup, Bjarne. (1991) <i>The C++ Programming Language, Second Edition</i>.
+        Addison-Wesley Publishing Company.
+      </li>
+    </ol>
+  </section>
+
+</main>
+<footer>
+  <div>
+    Technology Exponent &copy; 2025
+  </div>
+</footer>
+
+</body>
+</html>
