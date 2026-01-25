@@ -39,7 +39,7 @@
 
 #### Architect and Tech Lead for High Throughput Systems
 
-* Allow handling more than 50K requests per second, with about 1 millisecond request processing
+* Allow handling more than 50K requests per second, with about 1 millisecond requestPayload processing
   time.
 * Mentor engineers to understand how to build high performance, scalable, and reliable systems.
 * Technologies used: Java 21, Maven, Avro, Chaos testing, Solace/MQTT, Google Cloud Platform
